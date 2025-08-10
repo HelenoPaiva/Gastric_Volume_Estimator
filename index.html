@@ -22,8 +22,8 @@
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js" async></script>
 
   <!-- Meta for SEO -->
-  <meta name="description" content="Estimate gastric volume and aspiration risk using Perlas’s formula.">
-  <meta name="author" content="Your Name or Institution">
+  <meta name="description" content="Estimate gastric volume and aspiration risk using Perlas’s formula." />
+  <meta name="author" content="Your Name or Institution" />
 
   <!-- Optional favicon -->
   <link rel="icon" href="/favicon.ico" type="image/x-icon" />
@@ -52,13 +52,13 @@
 
       <div>
         <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age (years)</label>
-        <input type="number" id="age" name="age" required
+        <input type="number" id="age" name="age" step="0.1" required
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
       </div>
 
       <div>
         <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-        <input type="number" id="weight" name="weight" required
+        <input type="number" id="weight" name="weight" step="0.1" required
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
       </div>
 
@@ -81,8 +81,10 @@
         <p class="text-gray-700 font-semibold mb-1">Formulas Used:</p>
         <p><strong>1. Cross-Sectional Area (CSA):</strong></p>
         <p class="pl-4">$\text{CSA} = (\text{AP} \times \text{CC} \times \pi) / 4$</p>
-        <p><strong>2. Gastric Volume (GV) (Perlas's Formula):</strong></p>
-        <p class="pl-4">$\text{GV (mL)} = 27 + (14.6 \times \text{CSA}) - (1.28 \times \text{Age})$</p>
+        <p><strong>2a. Gastric Volume (GV) for patients &ge; 14 years (Perlas's Formula):</strong></p>
+        <p class="pl-4">$\text{GV (mL)} = 27 + (14.6 \times \text{CSA}) - (1.28 \times \text{Age}_{\text{years}})$</p>
+        <p><strong>2b. Gastric Volume (GV) Pediatric formula for patients &lt; 14 years:</strong></p>
+        <p class="pl-4">$\text{GV (mL)} = -7.8 + (3.5 \times \text{CSA}) + (0.127 \times \text{Age}_{\text{months}})$</p>
       </div>
     </div>
 
@@ -113,20 +115,32 @@
       resultsContainer.classList.add('hidden');
       errorMessageDiv.classList.add('hidden');
 
-      if (isNaN(ap) || isNaN(cc) || isNaN(age) || isNaN(weight)) {
-        errorMessageDiv.textContent = "Please enter a valid number for all fields.";
+      if (isNaN(ap) || isNaN(cc) || isNaN(age) || isNaN(weight) || ap <= 0 || cc <= 0 || age < 0 || weight <= 0) {
+        errorMessageDiv.textContent = "Please enter valid positive numbers for all fields.";
         errorMessageDiv.classList.remove('hidden');
         return;
       }
 
-      // Calculate CSA and gastric volume
+      // Calculate CSA
       const csa = (ap * cc * Math.PI) / 4;
-      const volume = 27 + (14.6 * csa) - (1.28 * age);
-      const threshold = 1.5 * weight;
+
+      let volume, formulaNote;
+
+      if (age < 14) {
+        const ageMonths = age * 12;
+        volume = -7.8 + (3.5 * csa) + (0.127 * ageMonths);
+        formulaNote = "Pediatric formula used (age < 14 years).";
+      } else {
+        volume = 27 + (14.6 * csa) - (1.28 * age);
+        formulaNote = "Perlas formula used (age ≥ 14 years).";
+      }
+
+      const riskThreshold = 1.5 * weight;
 
       let riskText = '';
       let riskClass = '';
-      if (volume > threshold) {
+
+      if (volume > riskThreshold) {
         riskText = 'High Risk ⚠️';
         riskClass = 'font-bold text-red-600';
       } else {
@@ -138,7 +152,13 @@
       csaResult.innerHTML = `<strong>Cross-Sectional Area (CSA):</strong> ${csa.toFixed(2)} cm²`;
       volumeResult.innerHTML = `<strong>Estimated Gastric Volume:</strong> ${volume.toFixed(2)} mL`;
       riskResult.innerHTML = `<strong>Aspiration Risk:</strong> <span class="${riskClass}">${riskText}</span>`;
+
       resultsContainer.classList.remove('hidden');
+
+      // Rerender MathJax formulas
+      if (window.MathJax) {
+        MathJax.typesetPromise();
+      }
     });
   </script>
 </body>
