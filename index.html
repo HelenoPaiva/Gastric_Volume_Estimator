@@ -1,165 +1,275 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Gastric Volume Calculator</title>
-
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- MathJax for LaTeX -->
-  <script>
-    MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']]
-      },
-      svg: {
-        fontCache: 'global'
-      }
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js" async></script>
-
-  <!-- Meta for SEO -->
-  <meta name="description" content="Estimate gastric volume and aspiration risk using Perlas’s formula." />
-  <meta name="author" content="Your Name or Institution" />
-
-  <!-- Optional favicon -->
-  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 </head>
 
-<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4">
-  <div class="container mx-auto max-w-xl bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Gastric Volume Calculator</h1>
-    <p class="text-gray-600 text-center mb-6">
-      Enter the patient's data below to estimate gastric volume and aspiration risk based on Perlas's formula.
-    </p>
+<body class="bg-slate-50 text-slate-900">
+  <div class="min-h-screen px-4 py-10">
+    <div class="mx-auto w-full max-w-xl">
+      <!-- Card -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+        <div class="px-6 pt-8 pb-6 text-center">
+          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Gastric Volume Calculator</h1>
+          <p class="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
+            Enter the patient’s data to estimate gastric volume and aspiration risk based on Perlas’s formula.
+          </p>
+        </div>
 
-    <!-- Form -->
-    <form id="gastric-form" class="space-y-4" novalidate>
-      <div>
-        <label for="ap-diameter" class="block text-sm font-medium text-gray-700 mb-1">Anteroposterior (AP) Diameter (cm)</label>
-        <input type="number" id="ap-diameter" name="ap-diameter" step="0.1" required autofocus
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-      </div>
+        <div class="px-6 pb-6">
+          <!-- Mode buttons -->
+          <div class="grid grid-cols-2 gap-3 mb-5">
+            <button id="btnModeDiam" type="button"
+              class="rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99]">
+              Diameters
+              <div class="text-xs font-normal text-slate-600 mt-1">AP + CC</div>
+            </button>
+            <button id="btnModeCsa" type="button"
+              class="rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99]">
+              CSA
+              <div class="text-xs font-normal text-slate-600 mt-1">Direct</div>
+            </button>
+          </div>
 
-      <div>
-        <label for="cc-diameter" class="block text-sm font-medium text-gray-700 mb-1">Craniocaudal (CC) Diameter (cm)</label>
-        <input type="number" id="cc-diameter" name="cc-diameter" step="0.1" required
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-      </div>
+          <!-- Inputs -->
+          <div class="space-y-4">
+            <!-- Diameters -->
+            <div id="diamFields" class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-slate-800">
+                  Anteroposterior (AP) Diameter (cm)
+                </label>
+                <input id="ap" type="number" inputmode="decimal" step="0.01" min="0"
+                  class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
+                  placeholder="e.g., 2.8" />
+              </div>
 
-      <div>
-        <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Age (years)</label>
-        <input type="number" id="age" name="age" step="0.1" required
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-      </div>
+              <div>
+                <label class="block text-sm font-semibold text-slate-800">
+                  Craniocaudal (CC) Diameter (cm)
+                </label>
+                <input id="cc" type="number" inputmode="decimal" step="0.01" min="0"
+                  class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
+                  placeholder="e.g., 3.4" />
+              </div>
+            </div>
 
-      <div>
-        <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-        <input type="number" id="weight" name="weight" step="0.1" required
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-      </div>
+            <!-- CSA Direct -->
+            <div id="csaFields" class="hidden">
+              <label class="block text-sm font-semibold text-slate-800">
+                Cross-Sectional Area (CSA) (cm²)
+              </label>
+              <input id="csa" type="number" inputmode="decimal" step="0.01" min="0"
+                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
+                placeholder="e.g., 6.50" />
+              <p class="text-xs text-slate-500 mt-2">
+                Use the CSA measurement provided directly by the ultrasound system.
+              </p>
+            </div>
 
-      <button type="submit" id="calculate-btn" class="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl" aria-label="Calculate gastric volume">
-        Calculate
-      </button>
-    </form>
+            <div>
+              <label class="block text-sm font-semibold text-slate-800">Age (years)</label>
+              <input id="ageYears" type="number" inputmode="decimal" step="0.1" min="0"
+                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
+                placeholder="e.g., 33" />
+              <p class="text-xs text-slate-500 mt-2">
+                Pediatric formula used automatically if age &lt; 14 years (internally converts years → months).
+              </p>
+            </div>
 
-    <!-- Error Message -->
-    <div id="error-message" class="hidden mt-4 p-3 bg-red-100 text-red-700 border border-red-300 rounded-md text-sm"></div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-800">Weight (kg)</label>
+              <input id="weight" type="number" inputmode="decimal" step="0.1" min="0"
+                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
+                placeholder="e.g., 66" />
+            </div>
 
-    <!-- Results -->
-    <div id="results" class="hidden mt-6 p-4 bg-gray-100 rounded-lg border border-gray-300 space-y-2" aria-live="polite">
-      <h2 class="text-xl font-bold text-gray-800">Results</h2>
-      <div id="csa-result" class="text-lg"></div>
-      <div id="volume-result" class="text-lg"></div>
-      <div id="risk-result" class="text-lg"></div>
+            <div class="hidden">
+              <!-- keep threshold in code; easy to expose later -->
+              <input id="threshold" type="number" value="1.5" />
+            </div>
 
-      <div class="mt-4 pt-4 border-t border-gray-300 text-xs text-gray-600">
-        <p class="text-gray-700 font-semibold mb-1">Formulas Used:</p>
-        <p><strong>1. Cross-Sectional Area (CSA):</strong></p>
-        <p class="pl-4">$\text{CSA} = (\text{AP} \times \text{CC} \times \pi) / 4$</p>
-        <p><strong>2a. Gastric Volume (GV) for patients &ge; 14 years (Perlas's Formula):</strong></p>
-        <p class="pl-4">$\text{GV (mL)} = 27 + (14.6 \times \text{CSA}) - (1.28 \times \text{Age}_{\text{years}})$</p>
-        <p><strong>2b. Gastric Volume (GV) Pediatric formula for patients &lt; 14 years:</strong></p>
-        <p class="pl-4">$\text{GV (mL)} = -7.8 + (3.5 \times \text{CSA}) + (0.127 \times \text{Age}_{\text{months}})$</p>
+            <button id="calcBtn" type="button"
+              class="mt-2 w-full rounded-xl bg-blue-600 text-white font-semibold py-3.5 shadow-md hover:bg-blue-700 active:scale-[0.99] transition">
+              Calculate
+            </button>
+
+            <div id="warnBox" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 text-sm"></div>
+          </div>
+
+          <!-- Results -->
+          <div id="resultsCard" class="mt-6 hidden">
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+              <h2 class="text-lg font-semibold text-slate-900">Results</h2>
+
+              <div class="mt-4 space-y-2 text-sm">
+                <div class="font-semibold">
+                  Cross-Sectional Area (CSA):
+                  <span id="outCsa" class="font-normal">—</span>
+                </div>
+
+                <div class="font-semibold">
+                  Estimated Gastric Volume:
+                  <span id="outGv" class="font-normal">—</span>
+                </div>
+
+                <div class="font-semibold">
+                  Aspiration Risk:
+                  <span id="outRisk" class="font-normal">—</span>
+                  <span id="riskIcon" class="ml-1 inline-block align-middle"></span>
+                </div>
+
+                <hr class="my-4 border-slate-200" />
+
+                <!-- MUST be the last output -->
+                <div class="text-xs text-slate-600">
+                  <div class="font-semibold text-slate-700 mb-2">Formulas Used:</div>
+                  <ol class="list-decimal pl-5 space-y-1">
+                    <li>
+                      Cross-Sectional Area (CSA):
+                      <span class="font-mono">CSA = (AP × CC × π)/4</span>
+                    </li>
+                    <li>
+                      Gastric Volume (GV) for patients ≥ 14 years (Perlas):
+                      <span class="font-mono">GV = 27 + (14.6 × CSA) − (1.28 × Age<sub>years</sub>)</span>
+                    </li>
+                    <li>
+                      Pediatric GV for patients &lt; 14 years:
+                      <span class="font-mono">GV = −7.8 + (3.5 × CSA) + (0.127 × Age<sub>months</sub>)</span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 text-center text-xs text-slate-500 pb-6">
+            Developed by Dr. Heleno Paiva.
+            <span class="hidden sm:inline"> For feedback, bug reports, or suggestions: <a href="mailto:heleno@gmail.com">heleno@gmail.com</a></span>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Disclaimer -->
-    <p class="text-gray-400 text-sm text-center mt-6">
-      Developed by Dr. Heleno Paiva. For feedback, bug reports, or suggestions, please contact me at <a href="mailto:heleno@gmail.com">heleno@gmail.com</a>.
-    </p>
   </div>
 
   <script>
-    const form = document.getElementById('gastric-form');
-    const resultsContainer = document.getElementById('results');
-    const csaResult = document.getElementById('csa-result');
-    const volumeResult = document.getElementById('volume-result');
-    const riskResult = document.getElementById('risk-result');
-    const errorMessageDiv = document.getElementById('error-message');
+    // ---------- helpers ----------
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n, d=2) => Number.isFinite(n) ? n.toFixed(d) : "—";
+    const toNum = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+    // ---------- formulas (exact from your screenshot) ----------
+    function calcCsaFromDiameters(ap, cc) {
+      return (Math.PI * ap * cc) / 4;
+    }
 
-      // Grab input values
-      const ap = parseFloat(document.getElementById('ap-diameter').value);
-      const cc = parseFloat(document.getElementById('cc-diameter').value);
-      const age = parseFloat(document.getElementById('age').value);
-      const weight = parseFloat(document.getElementById('weight').value);
+    function estimateGvMl(csa, ageYears) {
+      const ageMonths = ageYears * 12;
+      if (ageYears >= 14) {
+        return 27 + (14.6 * csa) - (1.28 * ageYears);
+      }
+      return -7.8 + (3.5 * csa) + (0.127 * ageMonths);
+    }
 
-      // Reset previous states
-      resultsContainer.classList.add('hidden');
-      errorMessageDiv.classList.add('hidden');
+    function setWarn(msgs) {
+      const box = $("warnBox");
+      if (!msgs.length) {
+        box.classList.add("hidden");
+        box.innerHTML = "";
+        return;
+      }
+      box.classList.remove("hidden");
+      box.innerHTML = msgs.map(m => `• ${m}`).join("<br>");
+    }
 
-      if (isNaN(ap) || isNaN(cc) || isNaN(age) || isNaN(weight) || ap <= 0 || cc <= 0 || age < 0 || weight <= 0) {
-        errorMessageDiv.textContent = "Please enter valid positive numbers for all fields.";
-        errorMessageDiv.classList.remove('hidden');
+    // ---------- mode ----------
+    let mode = "diam"; // "diam" | "csa"
+
+    function applyMode() {
+      const active = "bg-slate-900 text-white border-slate-900";
+      const inactive = "bg-white text-slate-900 border-slate-300 hover:bg-slate-50";
+
+      $("btnModeDiam").className =
+        `rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${mode==="diam" ? active : inactive}`;
+      $("btnModeCsa").className =
+        `rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${mode==="csa" ? active : inactive}`;
+
+      $("diamFields").classList.toggle("hidden", mode !== "diam");
+      $("csaFields").classList.toggle("hidden", mode !== "csa");
+
+      // hide results when switching modes (keeps it clean on mobile)
+      $("resultsCard").classList.add("hidden");
+      setWarn([]);
+    }
+
+    $("btnModeDiam").addEventListener("click", () => { mode = "diam"; applyMode(); });
+    $("btnModeCsa").addEventListener("click", () => { mode = "csa"; applyMode(); });
+
+    // ---------- calculate ----------
+    $("calcBtn").addEventListener("click", () => {
+      const msgs = [];
+
+      const ageYears = toNum($("ageYears").value);
+      const weight = toNum($("weight").value);
+      const threshold = toNum($("threshold").value) ?? 1.5;
+
+      if (ageYears == null || ageYears < 0) msgs.push("Please enter a valid age in years.");
+      if (weight == null || weight <= 0) msgs.push("Please enter a valid weight in kg (> 0).");
+
+      let csa = null;
+
+      if (mode === "diam") {
+        const ap = toNum($("ap").value);
+        const cc = toNum($("cc").value);
+        if (ap == null || ap <= 0) msgs.push("Please enter a valid AP diameter (> 0).");
+        if (cc == null || cc <= 0) msgs.push("Please enter a valid CC diameter (> 0).");
+        if (!msgs.length) csa = calcCsaFromDiameters(ap, cc);
+      } else {
+        const csaDirect = toNum($("csa").value);
+        if (csaDirect == null || csaDirect <= 0) msgs.push("Please enter a valid CSA (> 0).");
+        if (!msgs.length) csa = csaDirect;
+      }
+
+      if (msgs.length) {
+        $("resultsCard").classList.add("hidden");
+        setWarn(msgs);
         return;
       }
 
-      // Calculate CSA
-      const csa = (ap * cc * Math.PI) / 4;
+      setWarn([]);
 
-      let volume, formulaNote;
+      let gv = estimateGvMl(csa, ageYears);
+      if (gv < 0) gv = 0;
 
-      if (age < 14) {
-        const ageMonths = age * 12;
-        volume = -7.8 + (3.5 * csa) + (0.127 * ageMonths);
-        formulaNote = "Pediatric formula used (age < 14 years).";
-      } else {
-        volume = 27 + (14.6 * csa) - (1.28 * age);
-        formulaNote = "Perlas formula used (age ≥ 14 years).";
-      }
+      const mlKg = gv / weight;
+      const lowRisk = mlKg < threshold;
 
-      const riskThreshold = 1.5 * weight;
+      // outputs
+      $("outCsa").textContent = `${fmt(csa, 2)} cm²`;
+      $("outGv").textContent = `${fmt(gv, 2)} mL`;
 
-      let riskText = '';
-      let riskClass = '';
+      $("outRisk").innerHTML = lowRisk
+        ? `<span class="text-emerald-600 font-semibold">Low Risk</span>`
+        : `<span class="text-rose-600 font-semibold">High Risk</span>`;
 
-      if (volume > riskThreshold) {
-        riskText = 'High Risk ⚠️';
-        riskClass = 'font-bold text-red-600';
-      } else {
-        riskText = 'Low Risk ✅';
-        riskClass = 'font-bold text-green-600';
-      }
+      $("riskIcon").innerHTML = lowRisk
+        ? `<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-emerald-600 text-white text-xs">✓</span>`
+        : `<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-rose-600 text-white text-xs">!</span>`;
 
-      // Display results
-      csaResult.innerHTML = `<strong>Cross-Sectional Area (CSA):</strong> ${csa.toFixed(2)} cm²`;
-      volumeResult.innerHTML = `<strong>Estimated Gastric Volume:</strong> ${volume.toFixed(2)} mL`;
-      riskResult.innerHTML = `<strong>Aspiration Risk:</strong> <span class="${riskClass}">${riskText}</span>`;
+      $("resultsCard").classList.remove("hidden");
 
-      resultsContainer.classList.remove('hidden');
-
-      // Rerender MathJax formulas
-      if (window.MathJax) {
-        MathJax.typesetPromise();
-      }
+      // scroll results into view nicely on iPhone
+      $("resultsCard").scrollIntoView({ behavior: "smooth", block: "start" });
     });
+
+    // init
+    applyMode();
   </script>
 </body>
 </html>
