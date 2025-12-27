@@ -1,280 +1,472 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="antialiased">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
   <title>Gastric Volume Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] },
+          colors: {
+            slate: { 850: '#1e293b' } 
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* iOS native feel adjustments */
+    body { -webkit-tap-highlight-color: transparent; }
+    input[type="text"], input[type="number"] { font-size: 16px !important; } /* Prevents iOS Zoom */
+    
+    /* Smooth transitions */
+    .risk-transition { transition: background-color 0.4s ease, border-color 0.4s ease, color 0.3s ease; }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Custom Range Slider */
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 24px; width: 24px; /* Larger tap target */
+      border-radius: 50%;
+      background: #3b82f6;
+      margin-top: -10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%; height: 4px;
+      background: #e2e8f0; border-radius: 2px;
+    }
+    .dark input[type=range]::-webkit-slider-runnable-track { background: #334155; }
+  </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900">
-  <div class="min-h-screen px-4 py-10">
-    <div class="mx-auto w-full max-w-xl">
-      <!-- Card -->
-      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-        <div class="px-6 pt-8 pb-6 text-center">
-          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Gastric Volume Calculator</h1>
-          <p class="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
-            Enter the patient’s data to estimate gastric volume and aspiration risk based on Perlas’s formula.
-          </p>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col pb-[200px]">
+
+  <nav class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 pt-[env(safe-area-inset-top)] px-4 pb-3">
+    <div class="flex items-center justify-between max-w-xl mx-auto mt-2">
+      <div>
+        <h1 class="text-lg font-bold tracking-tight leading-none">Gastric Volume</h1>
+        <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Perlas Assessment Tool</p>
+      </div>
+      <button onclick="toggleTheme()" aria-label="Toggle Dark Mode" class="p-3 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 active:scale-95 transition-transform">
+        <svg id="iconMoon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        <svg id="iconSun" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="flex-1 w-full max-w-xl mx-auto px-4 py-6 space-y-6">
+
+    <div class="grid grid-cols-2 bg-slate-200 dark:bg-slate-800 p-1.5 rounded-xl">
+      <button onclick="setMode('diam')" id="btnDiam" class="py-3 text-xs font-bold uppercase rounded-lg shadow-sm transition-all duration-200 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+        Diameters
+      </button>
+      <button onclick="setMode('csa')" id="btnCsa" class="py-3 text-xs font-bold uppercase rounded-lg text-slate-500 dark:text-slate-400 transition-all duration-200">
+        Direct CSA
+      </button>
+    </div>
+
+    <section class="space-y-4">
+      <h2 class="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Patient</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="relative group">
+          <label class="absolute -top-2 left-3 bg-slate-50 dark:bg-slate-950 px-1 text-[10px] font-semibold text-slate-500 transition-colors group-focus-within:text-blue-500">Age (Yrs)</label>
+          <input type="text" inputmode="decimal" id="age" placeholder="e.g. 35"
+            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center">
+          <div id="err_age" class="text-[10px] text-rose-500 mt-1 ml-2 hidden fade-in">Required</div>
         </div>
-
-        <div class="px-6 pb-6">
-          <!-- Mode buttons -->
-          <div class="grid grid-cols-2 gap-3 mb-5">
-            <button id="btnModeDiam" type="button"
-              class="rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99]">
-              Diameters
-              <div class="text-xs font-normal text-slate-600 mt-1">AP + CC</div>
-            </button>
-            <button id="btnModeCsa" type="button"
-              class="rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99]">
-              CSA
-              <div class="text-xs font-normal text-slate-600 mt-1">Direct</div>
-            </button>
-          </div>
-
-          <!-- Inputs -->
-          <div class="space-y-4">
-            <!-- Diameters -->
-            <div id="diamFields" class="space-y-4">
-              <div>
-                <label class="block text-sm font-semibold text-slate-800">
-                  Anteroposterior (AP) Diameter (cm)
-                </label>
-                <input id="ap" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" step="0.01" min="0"
-                  class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
-                  autocomplete="off" placeholder="e.g., 2.8" />
-              </div>
-
-              <div>
-                <label class="block text-sm font-semibold text-slate-800">
-                  Craniocaudal (CC) Diameter (cm)
-                </label>
-                <input id="cc" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" step="0.01" min="0"
-                  class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
-                  autocomplete="off" placeholder="e.g., 3.4" />
-              </div>
-            </div>
-
-            <!-- CSA Direct -->
-            <div id="csaFields" class="hidden">
-              <label class="block text-sm font-semibold text-slate-800">
-                Cross-Sectional Area (CSA) (cm²)
-              </label>
-              <input id="csa" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" step="0.01" min="0"
-                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
-                autocomplete="off" placeholder="e.g., 6.50" />
-              <p class="text-xs text-slate-500 mt-2">
-                Use the CSA measurement provided directly by the ultrasound system.
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-semibold text-slate-800">Age (years)</label>
-              <input id="ageYears" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" step="0.1" min="0"
-                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
-                autocomplete="off" placeholder="e.g., 33" />
-              <p class="text-xs text-slate-500 mt-2">
-                Pediatric formula used automatically if age &lt; 14 years (internally converts years → months).
-              </p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-semibold text-slate-800">Weight (kg)</label>
-              <input id="weight" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" step="0.1" min="0"
-                class="mt-2 w-full rounded-xl border-slate-300 focus:border-blue-600 focus:ring-blue-600"
-                autocomplete="off" placeholder="e.g., 66" />
-            </div>
-
-            <div class="hidden">
-              <!-- keep threshold in code; easy to expose later -->
-              <input id="threshold" type="number" value="1.5" />
-            </div>
-
-            <button id="calcBtn" type="button"
-              class="mt-2 w-full rounded-xl bg-blue-600 text-white font-semibold py-3.5 shadow-md hover:bg-blue-700 active:scale-[0.99] transition">
-              Calculate
-            </button>
-
-            <div id="warnBox" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 text-sm"></div>
-          </div>
-
-          <!-- Results -->
-          <div id="resultsCard" class="mt-6 hidden">
-            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <h2 class="text-lg font-semibold text-slate-900">Results</h2>
-
-              <div class="mt-4 space-y-2 text-sm">
-                <div class="font-semibold">
-                  Cross-Sectional Area (CSA):
-                  <span id="outCsa" class="font-normal">—</span>
-                </div>
-
-                <div class="font-semibold">
-                  Estimated Gastric Volume:
-                  <span id="outGv" class="font-normal">—</span>
-                </div>
-
-                <div class="font-semibold">
-                  Aspiration Risk:
-                  <span id="outRisk" class="font-normal">—</span>
-                  <span id="riskIcon" class="ml-1 inline-block align-middle"></span>
-                </div>
-
-                <hr class="my-4 border-slate-200" />
-
-                <!-- MUST be the last output -->
-                <div class="text-xs text-slate-600">
-                  <div class="font-semibold text-slate-700 mb-2">Formulas Used:</div>
-                  <ol class="list-decimal pl-5 space-y-1">
-                    <li>
-                      Cross-Sectional Area (CSA):
-                      <span class="font-mono">CSA = (AP × CC × π)/4</span>
-                    </li>
-                    <li>
-                      Gastric Volume (GV) for patients ≥ 14 years (Perlas):
-                      <span class="font-mono">GV = 27 + (14.6 × CSA) − (1.28 × Age<sub>years</sub>)</span>
-                    </li>
-                    <li>
-                      Pediatric GV for patients &lt; 14 years:
-                      <span class="font-mono">GV = −7.8 + (3.5 × CSA) + (0.127 × Age<sub>months</sub>)</span>
-                    </li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6 text-center text-xs text-slate-500 pb-6">
-            Developed by Dr. Heleno Paiva.
-            <span class="hidden sm:inline"> For feedback, bug reports, or suggestions: <a href="mailto:heleno@gmail.com">heleno@gmail.com</a></span>
-          </div>
+        <div class="relative group">
+          <label class="absolute -top-2 left-3 bg-slate-50 dark:bg-slate-950 px-1 text-[10px] font-semibold text-slate-500 transition-colors group-focus-within:text-blue-500">Weight (Kg)</label>
+          <input type="text" inputmode="decimal" id="weight" placeholder="e.g. 70"
+            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center">
+          <div id="err_weight" class="text-[10px] text-rose-500 mt-1 ml-2 hidden fade-in">Required</div>
         </div>
       </div>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex justify-between items-end px-1">
+        <h2 class="text-xs font-bold uppercase text-slate-400 tracking-wider">Ultrasound</h2>
+        <button onclick="clearInputs()" class="px-3 py-1 -mr-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 active:opacity-50">CLEAR ALL</button>
+      </div>
+      
+      <div id="viewDiam" class="grid grid-cols-2 gap-4">
+        <div class="relative group">
+          <label class="absolute -top-2 left-3 bg-slate-50 dark:bg-slate-950 px-1 text-[10px] font-semibold text-slate-500 transition-colors group-focus-within:text-blue-500">AP (cm)</label>
+          <input type="text" inputmode="decimal" id="ap" placeholder="0.0"
+            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center text-lg">
+        </div>
+        <div class="relative group">
+          <label class="absolute -top-2 left-3 bg-slate-50 dark:bg-slate-950 px-1 text-[10px] font-semibold text-slate-500 transition-colors group-focus-within:text-blue-500">CC (cm)</label>
+          <input type="text" inputmode="decimal" id="cc" placeholder="0.0"
+            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center text-lg">
+        </div>
+      </div>
+
+      <div id="viewCsa" class="hidden">
+        <div class="relative group">
+          <label class="absolute -top-2 left-3 bg-slate-50 dark:bg-slate-950 px-1 text-[10px] font-semibold text-slate-500 transition-colors group-focus-within:text-blue-500">CSA (cm²)</label>
+          <input type="text" inputmode="decimal" id="csa" placeholder="0.00"
+            class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3.5 font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center text-lg">
+        </div>
+        <p class="text-[10px] text-slate-400 mt-2 ml-1">Enter the CSA directly from the ultrasound machine trace.</p>
+      </div>
+
+      <div id="err_general" class="text-[10px] text-amber-500 ml-1 hidden fade-in">
+        </div>
+    </section>
+
+    <details class="group mt-6 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 overflow-hidden">
+      <summary class="list-none flex items-center justify-between px-4 py-3 cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition bg-slate-50/50 dark:bg-slate-900">
+        <span>Settings & Formulas</span>
+        <svg class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="p-4 pt-2 space-y-4">
+        <div>
+          <label class="flex justify-between text-xs font-semibold mb-2 dark:text-slate-300">
+            <span>Risk Threshold</span>
+            <span id="threshDisp" class="text-blue-500">1.5 mL/kg</span>
+          </label>
+          <input type="range" id="threshold" min="0.5" max="3.0" step="0.1" value="1.5" class="w-full cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>Strict (0.5)</span>
+            <span>Liberal (3.0)</span>
+          </div>
+        </div>
+
+        <hr class="border-slate-100 dark:border-slate-800">
+
+        <div class="font-mono text-[10px] text-slate-500 space-y-1.5 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
+          <p><strong class="text-slate-700 dark:text-slate-300">CSA:</strong> (π × AP × CC) / 4</p>
+          <p><strong class="text-slate-700 dark:text-slate-300">Adult (≥14y):</strong> 27 + 14.6×CSA - 1.28×Age</p>
+          <p><strong class="text-slate-700 dark:text-slate-300">Peds (<14y):</strong> -7.8 + 3.5×CSA + 0.127×Mos</p>
+        </div>
+        <div class="text-[10px] text-center text-slate-400">Dr. Heleno Paiva - For feedback, bug reports, or suggestions: <a href="mailto:heleno@gmail.com">heleno@gmail.com</a> | v3.2</div>
+      </div>
+    </details>
+
+  </main>
+
+  <footer id="resultsPanel" class="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-40 transform translate-y-[120%] transition-transform duration-300 pb-[env(safe-area-inset-bottom)]">
+    
+    <div id="riskBar" class="h-1.5 w-full bg-slate-300 risk-transition"></div>
+
+    <div class="max-w-xl mx-auto px-5 py-4">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Estimated Volume</div>
+          <div class="flex items-baseline gap-1">
+            <span id="resGv" class="text-4xl font-bold text-slate-900 dark:text-white leading-none">—</span>
+            <span class="text-sm font-medium text-slate-500">mL</span>
+          </div>
+        </div>
+        
+        <div class="text-right">
+           <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Risk Assessment</div>
+           <div id="riskBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold risk-transition">
+             Waiting...
+           </div>
+           <div class="text-xs text-slate-500 mt-1.5 font-mono font-medium" id="resMlKg">— mL/kg</div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
+        <span id="resCsa" class="font-mono">CSA: — cm²</span>
+        <span id="resFormula">Model: Adult</span>
+      </div>
+
+      <button onclick="copyToClipboard()" class="mt-4 w-full py-3.5 bg-slate-900 dark:bg-slate-800 text-white dark:text-blue-400 rounded-xl text-sm font-bold active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+        Copy Summary to EMR
+      </button>
     </div>
+  </footer>
+
+  <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-xl opacity-0 transition-all pointer-events-none z-50 flex items-center gap-2">
+    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+    Copied to Clipboard
   </div>
 
   <script>
-    // ---------- helpers ----------
+    // --- 1. Robust Number Parsing ---
+    const parseLocaleNumber = (stringNumber) => {
+      if (!stringNumber) return null;
+      let val = stringNumber.trim();
+      // Remove spaces
+      val = val.replace(/\s/g, '');
+      
+      // Check for comma usage
+      if (val.indexOf(',') > -1) {
+         // If we have both . and , (e.g., 1.234,50)
+         if (val.indexOf('.') > -1) {
+            // Assume the last separator is the decimal
+            const lastDot = val.lastIndexOf('.');
+            const lastComma = val.lastIndexOf(',');
+            if (lastComma > lastDot) {
+               // European: remove dots, replace comma with dot
+               val = val.replace(/\./g, '').replace(',', '.');
+            } else {
+               // US: remove commas
+               val = val.replace(/,/g, '');
+            }
+         } else {
+            // Only commas: replace with dot (e.g. 1,5 or 1,234)
+            // Heuristic: if multiple commas, it's thousands (1,234,567) -> remove all
+            // If single comma, treat as decimal (common in medical data entry)
+            const parts = val.split(',');
+            if (parts.length > 2) {
+               val = val.replace(/,/g, '');
+            } else {
+               val = val.replace(',', '.');
+            }
+         }
+      }
+      const num = parseFloat(val);
+      return isFinite(num) ? num : null;
+    }
+
     const $ = (id) => document.getElementById(id);
-    const fmt = (n, d=2) => Number.isFinite(n) ? n.toFixed(d) : "—";
-        const toNum = (v) => {
-      if (v == null) return null;
-      // Accept both comma and dot as decimal separators (e.g., "3,14" or "3.14")
-      // Also tolerates spaces (e.g., "1 234,5" -> "1234.5")
-      const s = String(v).trim().replace(/\s+/g, "").replace(",", ".");
-      if (s === "") return null;
-      const n = Number(s);
-      return Number.isFinite(n) ? n : null;
+    const setErr = (id, msg) => {
+      const el = $(`err_${id}`);
+      if (!el) return;
+      if (msg) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
     };
 
-    // ---------- formulas (exact from your screenshot) ----------
-    function calcCsaFromDiameters(ap, cc) {
-      return (Math.PI * ap * cc) / 4;
-    }
+    // --- 2. State & Persistence ---
+    let state = {
+      mode: 'diam',
+      inputs: { age: null, weight: null, ap: null, cc: null, csa: null },
+      threshold: 1.5,
+      results: { gv: null, mlKg: null, risk: null, csaCalc: null, isPeds: false }
+    };
 
-    function estimateGvMl(csa, ageYears) {
-      const ageMonths = ageYears * 12;
-      if (ageYears >= 14) {
-        return 27 + (14.6 * csa) - (1.28 * ageYears);
+    function loadSettings() {
+      const saved = localStorage.getItem('gv_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.mode) setMode(parsed.mode, false); // don't save again
+        if (parsed.threshold) {
+          state.threshold = parsed.threshold;
+          $('threshold').value = state.threshold;
+          $('threshDisp').textContent = state.threshold.toFixed(1) + " mL/kg";
+        }
+        if (parsed.theme) {
+          if (parsed.theme === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+        }
+      } else {
+        // Default auto-detect
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        }
+        setMode('diam', false);
       }
-      return -7.8 + (3.5 * csa) + (0.127 * ageMonths);
     }
 
-    function setWarn(msgs) {
-      const box = $("warnBox");
-      if (!msgs.length) {
-        box.classList.add("hidden");
-        box.innerHTML = "";
-        return;
+    function saveSettings() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const settings = {
+        mode: state.mode,
+        threshold: state.threshold,
+        theme: isDark ? 'dark' : 'light'
+      };
+      localStorage.setItem('gv_settings', JSON.stringify(settings));
+    }
+
+    // --- 3. Logic ---
+    function init() {
+      loadSettings();
+      
+      ['age', 'weight', 'ap', 'cc', 'csa'].forEach(id => {
+        $(id).addEventListener('input', calculate);
+      });
+      
+      $('threshold').addEventListener('input', (e) => {
+        state.threshold = parseFloat(e.target.value);
+        $('threshDisp').textContent = state.threshold.toFixed(1) + " mL/kg";
+        calculate();
+        saveSettings();
+      });
+
+      calculate();
+    }
+
+    function setMode(m, save = true) {
+      state.mode = m;
+      const btnDiam = $('btnDiam');
+      const btnCsa = $('btnCsa');
+      const viewDiam = $('viewDiam');
+      const viewCsa = $('viewCsa');
+      
+      // Toggle logic
+      const activeClass = "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm";
+      const inactiveClass = "text-slate-500 dark:text-slate-400 bg-transparent shadow-none";
+
+      if (m === 'diam') {
+        btnDiam.className = `py-3 text-xs font-bold uppercase rounded-lg transition-all duration-200 ${activeClass}`;
+        btnCsa.className = `py-3 text-xs font-bold uppercase rounded-lg transition-all duration-200 ${inactiveClass}`;
+        viewDiam.classList.remove('hidden');
+        viewCsa.classList.add('hidden');
+      } else {
+        btnDiam.className = `py-3 text-xs font-bold uppercase rounded-lg transition-all duration-200 ${inactiveClass}`;
+        btnCsa.className = `py-3 text-xs font-bold uppercase rounded-lg transition-all duration-200 ${activeClass}`;
+        viewDiam.classList.add('hidden');
+        viewCsa.classList.remove('hidden');
       }
-      box.classList.remove("hidden");
-      box.innerHTML = msgs.map(m => `• ${m}`).join("<br>");
+      
+      if (save) saveSettings();
+      calculate();
     }
 
-    // ---------- mode ----------
-    let mode = "diam"; // "diam" | "csa"
-
-    function applyMode() {
-      const active = "bg-slate-900 text-white border-slate-900";
-      const inactive = "bg-white text-slate-900 border-slate-300 hover:bg-slate-50";
-
-      $("btnModeDiam").className =
-        `rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${mode==="diam" ? active : inactive}`;
-      $("btnModeCsa").className =
-        `rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.99] ${mode==="csa" ? active : inactive}`;
-
-      $("diamFields").classList.toggle("hidden", mode !== "diam");
-      $("csaFields").classList.toggle("hidden", mode !== "csa");
-
-      // hide results when switching modes (keeps it clean on mobile)
-      $("resultsCard").classList.add("hidden");
-      setWarn([]);
-    }
-
-    $("btnModeDiam").addEventListener("click", () => { mode = "diam"; applyMode(); });
-    $("btnModeCsa").addEventListener("click", () => { mode = "csa"; applyMode(); });
-
-    // ---------- calculate ----------
-    $("calcBtn").addEventListener("click", () => {
-      const msgs = [];
-
-      const ageYears = toNum($("ageYears").value);
-      const weight = toNum($("weight").value);
-      const threshold = toNum($("threshold").value) ?? 1.5;
-
-      if (ageYears == null || ageYears < 0) msgs.push("Please enter a valid age in years.");
-      if (weight == null || weight <= 0) msgs.push("Please enter a valid weight in kg (> 0).");
+    function calculate() {
+      // 1. Parse Inputs
+      state.inputs.age = parseLocaleNumber($('age').value);
+      state.inputs.weight = parseLocaleNumber($('weight').value);
+      
+      // 2. Clear previous errors
+      setErr('age', null);
+      setErr('weight', null);
+      setErr('general', null);
 
       let csa = null;
+      let warnings = [];
 
-      if (mode === "diam") {
-        const ap = toNum($("ap").value);
-        const cc = toNum($("cc").value);
-        if (ap == null || ap <= 0) msgs.push("Please enter a valid AP diameter (> 0).");
-        if (cc == null || cc <= 0) msgs.push("Please enter a valid CC diameter (> 0).");
-        if (!msgs.length) csa = calcCsaFromDiameters(ap, cc);
+      // 3. Mode specific logic
+      if (state.mode === 'diam') {
+        state.inputs.ap = parseLocaleNumber($('ap').value);
+        state.inputs.cc = parseLocaleNumber($('cc').value);
+        if (state.inputs.ap > 0 && state.inputs.cc > 0) {
+          csa = (Math.PI * state.inputs.ap * state.inputs.cc) / 4;
+        }
       } else {
-        const csaDirect = toNum($("csa").value);
-        if (csaDirect == null || csaDirect <= 0) msgs.push("Please enter a valid CSA (> 0).");
-        if (!msgs.length) csa = csaDirect;
+        state.inputs.csa = parseLocaleNumber($('csa').value);
+        if (state.inputs.csa > 0) csa = state.inputs.csa;
       }
 
-      if (msgs.length) {
-        $("resultsCard").classList.add("hidden");
-        setWarn(msgs);
-        return;
+      // 4. Physiologic Range Checks (Warnings only)
+      if (state.inputs.age > 120) warnings.push("Age likely invalid (>120)");
+      if (state.inputs.weight > 300) warnings.push("Weight likely invalid (>300kg)");
+      if (csa > 50) warnings.push("CSA unusually large (>50cm²)");
+
+      // 5. Validation Logic
+      let isValid = true;
+      if (state.inputs.age === null && $('age').value.length > 0) { setErr('age', 'Invalid number'); isValid = false; }
+      if (state.inputs.weight === null && $('weight').value.length > 0) { setErr('weight', 'Invalid number'); isValid = false; }
+      
+      if (warnings.length > 0) {
+        setErr('general', "Note: " + warnings.join(", "));
       }
 
-      setWarn([]);
+      const panel = $('resultsPanel');
+      
+      // 6. Compute if complete
+      if (isValid && state.inputs.age !== null && state.inputs.weight !== null && csa !== null) {
+        let gv = 0;
+        let isPeds = false;
+        
+        if (state.inputs.age >= 14) {
+          gv = 27 + (14.6 * csa) - (1.28 * state.inputs.age);
+          isPeds = false;
+        } else {
+          const mos = state.inputs.age * 12;
+          gv = -7.8 + (3.5 * csa) + (0.127 * mos);
+          isPeds = true;
+        }
+        
+        gv = Math.max(0, gv);
+        const mlKg = gv / state.inputs.weight;
+        const isHighRisk = mlKg >= state.threshold;
+        
+        state.results = { gv, mlKg, risk: isHighRisk ? 'high' : 'low', csaCalc: csa, isPeds };
+        
+        updateUI();
+        panel.classList.remove('translate-y-[120%]');
+      } else {
+        // Hide panel if data incomplete
+        panel.classList.add('translate-y-[120%]');
+      }
+    }
 
-      let gv = estimateGvMl(csa, ageYears);
-      if (gv < 0) gv = 0;
+    function updateUI() {
+      const { gv, mlKg, risk, csaCalc, isPeds } = state.results;
+      
+      $('resGv').textContent = gv.toFixed(0);
+      $('resMlKg').textContent = mlKg.toFixed(2) + " mL/kg";
+      $('resCsa').textContent = `CSA: ${csaCalc.toFixed(2)} cm²`;
+      $('resFormula').textContent = `Model: ${isPeds ? 'Pediatric (<14y)' : 'Adult (≥14y)'}`;
 
-      const mlKg = gv / weight;
-      const lowRisk = mlKg < threshold;
+      const riskBar = $('riskBar');
+      const badge = $('riskBadge');
+      
+      // Color Logic
+      if (risk === 'low') {
+        riskBar.className = "h-1.5 w-full bg-emerald-500 risk-transition";
+        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-xs font-bold risk-transition";
+        badge.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> Low Risk`;
+      } else {
+        riskBar.className = "h-1.5 w-full bg-rose-500 risk-transition";
+        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400 text-xs font-bold risk-transition";
+        badge.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> High Risk`;
+      }
+    }
 
-      // outputs
-      $("outCsa").textContent = `${fmt(csa, 2)} cm²`;
-      $("outGv").textContent = `${fmt(gv, 2)} mL`;
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      saveSettings();
+    }
 
-      $("outRisk").innerHTML = lowRisk
-        ? `<span class="text-emerald-600 font-semibold">Low Risk</span>`
-        : `<span class="text-rose-600 font-semibold">High Risk</span>`;
+    function clearInputs() {
+      if(confirm("Clear all data?")) {
+        ['age', 'weight', 'ap', 'cc', 'csa'].forEach(id => $(id).value = '');
+        calculate();
+      }
+    }
 
-      $("riskIcon").innerHTML = lowRisk
-        ? `<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-emerald-600 text-white text-xs">✓</span>`
-        : `<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-rose-600 text-white text-xs">!</span>`;
+    function copyToClipboard() {
+      const { gv, mlKg, risk, csaCalc, isPeds } = state.results;
+      if (gv === null) return;
+      
+      const now = new Date().toLocaleDateString();
+      const riskLabel = risk === 'high' ? 'HIGH' : 'LOW';
+      // Corrected logic for text output
+      const riskDetail = risk === 'high' 
+        ? `(≥ ${state.threshold} mL/kg)` 
+        : `(< ${state.threshold} mL/kg)`;
 
-      $("resultsCard").classList.remove("hidden");
+      const txt = `GASTRIC US EXAM (${now})
+- Age: ${state.inputs.age}y | Wt: ${state.inputs.weight}kg
+- CSA: ${csaCalc.toFixed(2)} cm²
+- Est GV: ${gv.toFixed(0)} mL
+- Vol/Wt: ${mlKg.toFixed(2)} mL/kg
+- Risk: ${riskLabel} ${riskDetail}
+Model: ${isPeds ? 'Pediatric' : 'Adult'}`;
+      
+      navigator.clipboard.writeText(txt).then(() => {
+        const t = $('toast');
+        t.style.opacity = '1';
+        t.style.transform = 'translate(-50%, 0)';
+        setTimeout(() => {
+           t.style.opacity = '0';
+           t.style.transform = 'translate(-50%, -10px)';
+        }, 2000);
+      });
+    }
 
-      // scroll results into view nicely on iPhone
-      $("resultsCard").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    // init
-    applyMode();
+    // Run
+    init();
   </script>
 </body>
 </html>
